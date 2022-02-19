@@ -3,15 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/njoysubho/whatson/client"
-	"github.com/njoysubho/whatson/dto"
+	"github.com/njoysubho/whatson/app/client"
+	"github.com/njoysubho/whatson/app/dto"
 	"testing"
 )
 
 var baseUrl = "https://api.themoviedb.org/3"
 
 func TestItShouldGetDefaultQuery(t *testing.T) {
-	tmdbRequest := dto.TmdbRequest{}
+	tmdbRequest := &dto.TmdbRequest{}
 	request := events.APIGatewayProxyRequest{Body: "{\"query\": \"default\"}"}
 	err := json.Unmarshal([]byte(request.Body), &tmdbRequest)
 	if err != nil {
@@ -26,7 +26,7 @@ func TestItShouldGetDefaultQuery(t *testing.T) {
 	tmdbClient := client.TMDBApiClient{BaseUrl: baseUrl, HttpClient: &mockHttpClient, ApiKey: "test"}
 
 	queryExecutor := QueryExecutor{Apiclient: tmdbClient}
-	response := queryExecutor.QueryTmdb(&tmdbRequest)
+	response := queryExecutor.QueryTmdb(tmdbRequest)
 	if response.StatusCode != 200 {
 		t.Errorf("Expected status code 200 Found %d", response.StatusCode)
 	}

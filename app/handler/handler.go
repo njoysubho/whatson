@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/njoysubho/whatson/client"
-	"github.com/njoysubho/whatson/dto"
+	"github.com/njoysubho/whatson/app/client"
+	"github.com/njoysubho/whatson/app/dto"
 )
 type QueryExecutor struct{
 	Apiclient client.TMDBApiClient
