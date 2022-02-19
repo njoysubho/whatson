@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/njoysubho/whatson/client"
-	"github.com/njoysubho/whatson/dto"
-	"github.com/njoysubho/whatson/handler"
+	"github.com/njoysubho/whatson/app/client"
+	"github.com/njoysubho/whatson/app/dto"
+	"github.com/njoysubho/whatson/app/handler"
 )
 
 func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) events.APIGatewayProxyResponse {
