@@ -2,7 +2,7 @@ name: PR-Job
 on:
   pull_request:
     branches:
-      - master
+      - main
 jobs:
   PR_Job:
     runs-on: ubuntu-20.04
