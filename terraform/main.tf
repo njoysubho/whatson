@@ -2,6 +2,7 @@ terraform {
   backend "s3" {
     bucket = "arn:aws:s3:::app-terraform-bucket"
     region = "eu-west-1"
+    key = "tf_state"
   }
 }
 provider "aws" {
