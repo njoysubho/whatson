@@ -4,7 +4,7 @@ on:
     branches:
       - main
 jobs:
-  PR_Job:
+  Build-Deploy-Lambda:
     runs-on: ubuntu-20.04
     steps:
       - name: "Install Go"
@@ -20,19 +20,25 @@ jobs:
         run: go test ./...
 
       - name: "Build"
-        run: "env GOOS=linux GOARCH=amd64 go build -o ../bin/whatson"
+        run: "GOOS=linux GOARCH=amd64 go build -o whatson"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: "eu-west-1"
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: "Upload to S3"
+        run: |
+          zip whatson.zip whatson
+          aws s3 cp whatson.zip s3://sab-lambda-artifact/whatson.zip
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 1.1.7
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-region: us-east-1
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Initialize Terraform
         run: |
@@ -41,7 +47,7 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        continue-on-error: true
+        continue-on-error: false
         run: |
           cd terraform
           terraform plan -input=false -out=tfplan
@@ -49,7 +55,7 @@ jobs:
       - name: Apply Terraform
         if: steps.plan.outcome == 'success'
         id: apply
-        continue-on-error: true
+        continue-on-error: false
         run: |
           cd terraform
           terraform apply \

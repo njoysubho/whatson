@@ -1,26 +1,26 @@
 terraform {
   backend "s3" {
-    bucket = "arn:aws:s3:::app-terraform-bucket"
+    bucket = "app-terraform-bucket"
     region = "eu-west-1"
-    key = "tf_state"
+    key    = "terraform.tfstate"
   }
 }
 provider "aws" {
   region = "eu-west-1"
 }
 data "aws_caller_identity" "current" {}
+
 locals {
-  account_id      = data.aws_caller_identity.current.account_id
-  environment     = "test"
-  lambda_handler  = "whatson"
-  name            = "whatson"
-  region          = "eu-west-1"
+  account_id     = data.aws_caller_identity.current.account_id
+  environment    = "test"
+  lambda_handler = "whatson"
+  name           = "whatson"
+  region         = "eu-west-1"
 }
 
-data "archive_file" "lambda_zip" {
-  type        = "zip"
-  source_file = "../bin/whatson"
-  output_path = "../bin/whatson.zip"
+data "aws_s3_object" "lambda_source" {
+  bucket = "sab-lambda-artifact"
+  key    = "whatson.zip"
 }
 
 data "aws_iam_policy_document" "lambda_policy_document" {
@@ -30,7 +30,7 @@ data "aws_iam_policy_document" "lambda_policy_document" {
     effect  = "Allow"
     actions = [
       "sts:AssumeRole"
-      ]
+    ]
 
     principals {
       type        = "Service"
@@ -39,7 +39,7 @@ data "aws_iam_policy_document" "lambda_policy_document" {
   }
 
   statement {
-    effect = "Allow"
+    effect  = "Allow"
     actions = [
       "secretsmanager:DescribeSecret",
       "secretsmanager:GetSecretValue",
@@ -50,8 +50,8 @@ data "aws_iam_policy_document" "lambda_policy_document" {
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name                = "${local.name}-lambda"
-  assume_role_policy  = data.aws_iam_policy_document.lambda_policy_document.json
+  name               = "${local.name}-lambda"
+  assume_role_policy = data.aws_iam_policy_document.lambda_policy_document.json
 }
 
 data "aws_iam_policy_document" "logs" {
@@ -73,9 +73,9 @@ resource "aws_iam_policy" "logs" {
 }
 
 resource "aws_iam_role_policy_attachment" "logs" {
-  depends_on  = [aws_iam_role.lambda_role, aws_iam_policy.logs]
-  role        = aws_iam_role.lambda_role.name
-  policy_arn  = aws_iam_policy.logs.arn
+  depends_on = [aws_iam_role.lambda_role, aws_iam_policy.logs]
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = aws_iam_policy.logs.arn
 }
 
 resource "aws_cloudwatch_log_group" "log" {
@@ -84,14 +84,15 @@ resource "aws_cloudwatch_log_group" "log" {
 }
 
 resource "aws_lambda_function" "whatson-lambda" {
-  filename          = data.archive_file.lambda_zip.output_path
-  function_name     = local.name
-  role              = aws_iam_role.lambda_role.arn
-  handler           = local.lambda_handler
-  source_code_hash  = filebase64sha256(data.archive_file.lambda_zip.output_path)
-  runtime           = "go1.x"
-  memory_size       = 1024
-  timeout           = 30
+  s3_bucket        = "sab-lambda-artifact"
+  s3_key           = "whatson.zip"
+  function_name    = local.name
+  role             = aws_iam_role.lambda_role.arn
+  handler          = local.lambda_handler
+  source_code_hash = filebase64sha256(data.aws_s3_object.lambda_source)
+  runtime          = "go1.x"
+  memory_size      = 1024
+  timeout          = 30
 }
 
 
