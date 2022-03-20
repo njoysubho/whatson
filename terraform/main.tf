@@ -23,7 +23,8 @@ data "aws_s3_object" "lambda_source" {
   key    = "whatson.zip"
 }
 
-data "aws_iam_policy_document" "lambda_policy_document" {
+
+data "aws_iam_policy_document" "lambda_assume_role_policy_document" {
   policy_id = "${local.name}-lambda"
   version   = "2012-10-17"
   statement {
@@ -31,28 +32,22 @@ data "aws_iam_policy_document" "lambda_policy_document" {
     actions = [
       "sts:AssumeRole"
     ]
-
     principals {
       type        = "Service"
       identifiers = ["lambda.amazonaws.com"]
     }
   }
-
-  statement {
-    effect  = "Allow"
-    actions = [
-      "secretsmanager:DescribeSecret",
-      "secretsmanager:GetSecretValue",
-      "secretsmanager:ListSecrets"
-    ]
-    resources = ["arn:aws:secretsmanager:${local.region}:${local.account_id}:secret:test/secret/*"]
-  }
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name               = "${local.name}-lambda"
-  assume_role_policy = data.aws_iam_policy_document.lambda_policy_document.json
+  name                = "${local.name}-lambda"
+  assume_role_policy  = data.aws_iam_policy_document.lambda_assume_role_policy_document.json
+  managed_policy_arns = [
+    "arn:aws:iam::538653532257:policy/sab-lambda-secret-manager-policy",
+    "arn:aws:iam::538653532257:policy/sab-lambda-s3-policy"
+  ]
 }
+
 
 data "aws_iam_policy_document" "logs" {
   policy_id = "${local.name}-lambda-logs"
@@ -84,15 +79,14 @@ resource "aws_cloudwatch_log_group" "log" {
 }
 
 resource "aws_lambda_function" "whatson-lambda" {
-  s3_bucket        = "sab-lambda-artifact"
-  s3_key           = "whatson.zip"
-  function_name    = local.name
-  role             = aws_iam_role.lambda_role.arn
-  handler          = local.lambda_handler
-  source_code_hash = filebase64sha256(data.aws_s3_object.lambda_source)
-  runtime          = "go1.x"
-  memory_size      = 1024
-  timeout          = 30
+  s3_bucket     = data.aws_s3_object.lambda_source.bucket
+  s3_key        = data.aws_s3_object.lambda_source.key
+  function_name = local.name
+  role          = aws_iam_role.lambda_role.arn
+  handler       = local.lambda_handler
+  runtime       = "go1.x"
+  memory_size   = 1024
+  timeout       = 30
 }
 
 

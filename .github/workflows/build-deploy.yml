@@ -32,7 +32,9 @@ jobs:
       - name: "Upload to S3"
         run: |
           zip whatson.zip whatson
+          openssl dgst -sha256 -binary whatson.zip | openssl enc -base64 | tr -d "\n" > whatson.zip.base64sha256
           aws s3 cp whatson.zip s3://sab-lambda-artifact/whatson.zip
+          aws s3 cp --content-type text/plain whatson.zip.base64sha256 s3://sab-lambda-artifact/whatson.zip.base64sha256
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
