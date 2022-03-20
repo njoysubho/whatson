@@ -58,6 +58,8 @@ jobs:
         if: steps.plan.outcome == 'success'
         id: apply
         continue-on-error: false
+        env:
+          TF_LOG: DEBUG
         run: |
           cd terraform
           terraform apply \
